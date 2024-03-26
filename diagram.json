@@ -94,7 +94,7 @@
     [ "servo1:V+", "esp:5V", "red", [ "h95.9", "v489.6" ] ],
     [ "esp:GND.2", "led1:C", "black", [ "v0", "h38.4", "v-528" ] ],
     [ "led3:C", "esp:GND.2", "black", [ "v0" ] ],
-    [ "led3:A", "esp:15", "green", [ "v182.4" ] ]
+    [ "led3:A", "esp:15", "gold", [ "v182.4" ] ]
   ],
   "dependencies": {}
 }
