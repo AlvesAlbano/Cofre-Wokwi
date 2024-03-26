@@ -2,6 +2,54 @@
 #include <LiquidCrystal_I2C.h>
 #include <ESP32Servo.h>
 
+//BROKER MQTT============================================================================================================================
+#include <WiFi.h>
+#include <PubSubClient.h>
+const int LED01 = 15;
+const char* mqtt_server = "broker.hivemq.com"; //servidor mqtt
+WiFiClient espClient;             //abstrai
+PubSubClient client(espClient);   //abstrai
+unsigned long lastMsg = 0;        //unsigned long = inteiro de 32 bits sem sinal
+#define MSG_BUFFER_SIZE  (50)     //abstrai
+char msg[MSG_BUFFER_SIZE];        //abstrai
+
+void conectarBroker() {         
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+  if (!client.connected()) {
+    Serial.print("Conectando ao servidor MQTT...");
+    String clientId = "";
+    clientId += String(random(0xffff), HEX);
+    if (client.connect(clientId.c_str())) {
+      Serial.println("Conectado");              
+      client.subscribe("m6abcd/led");  	      //inscrição no tópico para receber mensagens
+      //client.subscribe("");
+    }
+  }
+}
+
+void reconectarBroker() {
+  if (!client.connected()) {
+    conectarBroker();
+  }
+  client.loop();
+}
+
+void callback(char* topic, byte* payload, unsigned int lenght) {
+
+  if ((char)payload[0] == 'a') {
+    digitalWrite(LED01, LOW);
+   
+  }
+
+  if ((char)payload[0] == 'A') {
+    digitalWrite(LED01, HIGH);
+    
+  }
+  
+}
+//==========================================================================================================================================
+
 #define I2C_ADDR    0x27
 #define LCD_COLUMNS 16
 #define LCD_LINES   2
@@ -19,6 +67,8 @@ int beats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 int tempo = 75;
 
 const String senhaCorreta = "123456"; // Senha predefinida
+const String senhaEmergencia = "ABCD*#";
+int tentativas = 0;
 
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_LINES);
 
@@ -40,17 +90,30 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 void setup() {
   Serial.begin(115200);
+//BROKER MQTT============================================================================================================================
+  Serial.print("Conectando-se ao Wi-Fi");
+  WiFi.begin("Wokwi-GUEST", "", 6);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.println(" Conectado!");
+  pinMode(LED01, OUTPUT);
+  conectarBroker();
+//==========================================================================================================================================
   pinMode(btnIn, INPUT_PULLUP);
   pinMode(btnApg, INPUT_PULLUP);
   pinMode(ledR, OUTPUT);
   pinMode(ledG, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
   trava.attach(travaPin);
+  trava.write(180); 
   lcd.init();
   lcd.backlight();
 }
 
 void loop() {
+  reconectarBroker();
   digitar();
   apagar();
   inserir();
@@ -85,42 +148,73 @@ void apagar(){
 
 void inserir(){
   if (digitalRead(btnIn) == LOW) {
-    if (senha == senhaCorreta) {
+    if (senha == senhaCorreta && tentativas<3) {
       liberar();
-    } else {
-      travar();
+    } 
+    else if(tentativas == 3) {
+      bloqueado();
     }
-    reset();
+    else{
+      travar();
+    } 
   }
 }
 
 void liberar(){
   trava.attach(travaPin); // Liga o sinal enviado para o servo, "liberando-o"
+  tentativas = 0;
   digitalWrite(ledG, HIGH);
-  trava.write(180);
+  trava.write(90);
   somAcesso();
   lcd.setCursor(0, 1);
   lcd.print("Acesso permitido");
+  reset();
 }
 
 void travar(){
-  trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
   digitalWrite(ledR, HIGH);
-  somTrava();
-  lcd.setCursor(0, 1);
-  lcd.print("Senha incorreta");
+  tentativas++;
+  if(tentativas == 3){
+    lcd.setCursor(1, 0);
+    lcd.print("                "); // Limpa o campo de senha
+    senha = ""; // Limpa a senha digitada
+    bloqueado();
+  }
+  else{
+    trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
+    somTrava();
+    lcd.setCursor(0, 1);
+    lcd.print("Senha incorreta");
+    reset();
+  }
 }
 
 void reset(){
   delay(2000); // Exibe a mensagem por 2 segundos
   digitalWrite(ledG, LOW);
   digitalWrite(ledR, LOW);
-  trava.write(90);
+  trava.write(180);
   lcd.setCursor(0, 1);
   lcd.print("                "); // Limpa a linha
   senha = ""; // Limpa a senha digitada
   lcd.setCursor(1, 0);
   lcd.print("                "); // Limpa o campo de senha
+}
+
+void bloqueado(){
+  somTravaTotal();
+  lcd.setCursor(3, 1);
+  lcd.print("BLOQUEADO");
+  digitar();
+  if(senha == senhaEmergencia){
+    tentativas = 0;
+    reset();
+  }
+  else{
+      lcd.setCursor(1, 0);
+      lcd.print("                "); // Limpa o campo de senha
+      senha = ""; // Limpa a senha digitada
+  }
 }
 
 void playNote(char note, int duration) {
@@ -156,6 +250,11 @@ void somAcesso(){
 void somTrava(){
   tone(buzzerPin, 262, 999);
 }
+
+void somTravaTotal(){
+  tone(buzzerPin, 400, 999);
+}
+
 
 //O Painel de Controle deve apresentar um histórico de todas as tentativas de entradas, deve
 //permitir que o usuário bloqueie ou libere a trava, e acione o buzzer.
