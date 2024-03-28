@@ -21,6 +21,7 @@ const int buzzerPin = 2;
 const String senhaCorreta = "123456"; // Senha predefinida
 const String senhaEmergencia = "ABCD*#";
 int tentativas = 0;
+bool trancado;
 
 String senha = "";
 
@@ -60,7 +61,7 @@ void conectarBroker() {
     if (client.connect(clientId.c_str())) {
       digitalWrite(ledA,HIGH);
       Serial.println("Conectado");              
-      client.subscribe("m6abcd/led");  	      //inscrição no tópico para receber mensagens
+      client.subscribe("cofre/acesso");  	      //inscrição no tópico para receber mensagens
       //client.subscribe("");
     }
   }
@@ -74,17 +75,28 @@ void reconectarBroker() {
 }
 
 void callback(char* topic, byte* payload, unsigned int lenght) {
-
-  if ((char)payload[0] == 'a') {
-    digitalWrite(ledA, LOW);
+  // if ((char)payload[0] == 'a') {
+  //   digitalWrite(ledA, LOW);
    
+  // }
+  // if ((char)payload[0] == 'A') {
+  //   digitalWrite(ledA, HIGH);
+    
+  // }
+
+  String mensagem = "";
+  
+  for (int i = 0; i < lenght; i++) {
+    mensagem += (char)payload[i];
   }
 
-  if ((char)payload[0] == 'A') {
-    digitalWrite(ledA, HIGH);
-    
-  }
+  if (mensagem == "ON") {
+    Serial.println("cofre desbloqueado");
+  } 
   
+  else if (mensagem == "OFF") {
+    Serial.println("cofre bloqueado");
+  }
 }
 //==========================================================================================================================================
 
@@ -185,6 +197,7 @@ void travar(){
     somTrava();
     lcd.setCursor(0, 1);
     lcd.print("Senha incorreta");
+    client.publish("cofre/teste","mensagem teste");
     reset();
   }
 }
@@ -256,6 +269,13 @@ void somTravaTotal(){
   tone(buzzerPin, 400, 1000);
 }
 
-
+void travaSeguranca(bool valor){
+  if(valor){
+    Serial.println("O cofre está trancando esperando confirmação de acesso");
+  } else {
+    Serial.println("O cofre destrancado");
+  }
+  // TODO: depois eu faço 
+}
 //O Painel de Controle deve apresentar um histórico de todas as tentativas de entradas, deve
 //permitir que o usuário bloqueie ou libere a trava, e acione o buzzer.
