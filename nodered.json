@@ -1,0 +1,62 @@
+[
+    {
+        "id": "739c73734f131472",
+        "type": "ui_form",
+        "z": "8a3d2c730581dcb2",
+        "g": "5fd49f6c19799bb3",
+        "name": "",
+        "label": "",
+        "group": "fee1a7361766ef33",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "options": [
+            {
+                "label": "Definir nova senha",
+                "value": "novaSenha",
+                "type": "number",
+                "required": false,
+                "rows": null
+            }
+        ],
+        "formValue": {
+            "novaSenha": ""
+        },
+        "payload": "",
+        "submit": "submit",
+        "cancel": "cancel",
+        "topic": "topic",
+        "topicType": "msg",
+        "splitLayout": "",
+        "className": "",
+        "x": 110,
+        "y": 560,
+        "wires": [
+            [
+                "0839dba3ba81b2a0",
+                "2cbb0f11dbbfba6a"
+            ]
+        ],
+        "info": "oiiiiiiiiiiiiiii"
+    },
+    {
+        "id": "fee1a7361766ef33",
+        "type": "ui_group",
+        "name": "Definir nova senha",
+        "tab": "feae15c3531b11d1",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "feae15c3531b11d1",
+        "type": "ui_tab",
+        "name": "Cofre Painel de Controle",
+        "icon": "dashboard",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    }
+]
