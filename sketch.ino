@@ -10,7 +10,7 @@
 
 const int travaPin = 12;
 const int btnApg = 17, btnIn = 16;
-const int ledV = 18, ledR = 19;
+const int ledVERD = 18, ledVERM = 19;
 const int buzzerPin = 2;
 
 // char notes[] = "gabygabyxzCDxzCDabywabywzCDEzCDEbywFCDEqywFGDEqi        azbC";
@@ -62,7 +62,6 @@ void conectarBroker() {
       digitalWrite(ledA,HIGH);
       Serial.println("Conectado");              
       client.subscribe("cofre/acesso");  	      //inscrição no tópico para receber mensagens
-      //client.subscribe("");
     }
   }
 }
@@ -92,10 +91,27 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
 
   if (mensagem == "ON") {
     Serial.println("cofre desbloqueado");
+    digitalWrite(ledVERD,HIGH);
+    digitalWrite(ledVERM,LOW);
+    tentativas = 0;
+    trancado = false;
+    senha = "";
+    lcd.clear();
+    lcd.setCursor(1, 1);
+    lcd.print("DESBLOQUEADO");
+    delay(2000);
+    lcd.clear();
+    digitalWrite(ledVERD,LOW);
   } 
   
   else if (mensagem == "OFF") {
     Serial.println("cofre bloqueado");
+    digitalWrite(ledVERM,HIGH);
+    trancado = true;
+    senha = "";
+    lcd.clear();
+    lcd.setCursor(3, 1);
+    lcd.print("BLOQUEADO");
   }
 }
 //==========================================================================================================================================
@@ -115,8 +131,8 @@ void setup() {
 //==========================================================================================================================================
   pinMode(btnIn, INPUT_PULLUP);
   pinMode(btnApg, INPUT_PULLUP);
-  pinMode(ledR, OUTPUT);
-  pinMode(ledV, OUTPUT);
+  pinMode(ledVERM, OUTPUT);
+  pinMode(ledVERD, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
   trava.attach(travaPin);
   trava.write(180); 
@@ -134,7 +150,7 @@ void loop() {
 void digitar(){
   char key = keypad.getKey();
 
-  if (key != NO_KEY) {
+  if (key != NO_KEY && !(trancado)) {
     trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
     tone(buzzerPin, 800, 25);
     senha += key;
@@ -150,7 +166,7 @@ void apagar(){
       tone(buzzerPin, 200, 50);
       senha.remove(senha.length() - 1);
       lcd.setCursor(1, 0);
-      lcd.print("                "); // Limpa o campo de senha
+      lcd.clear(); // Limpa o campo de senha
       lcd.setCursor(1, 0);
       lcd.print(senha);
       delay(200); // Pequeno atraso para evitar múltiplas leituras do botão
@@ -159,7 +175,7 @@ void apagar(){
 }
 
 void inserir(){
-  if (digitalRead(btnIn) == LOW) {
+  if (digitalRead(btnIn) == LOW && !(trancado)) {
     if (senha == senhaCorreta && tentativas<3) {
       liberar();
     } 
@@ -175,7 +191,7 @@ void inserir(){
 void liberar(){
   trava.attach(travaPin); // Liga o sinal enviado para o servo, "liberando-o"
   tentativas = 0;
-  digitalWrite(ledV, HIGH);
+  digitalWrite(ledVERD, HIGH);
   trava.write(90);
   somAcesso();
   lcd.setCursor(0, 1);
@@ -184,15 +200,15 @@ void liberar(){
 }
 
 void travar(){
-  digitalWrite(ledR, HIGH);
+  digitalWrite(ledVERM, HIGH);
   tentativas++;
   if(tentativas == 3){
     lcd.setCursor(1, 0);
-    lcd.print("                "); // Limpa o campo de senha
+    lcd.clear(); // Limpa o campo de senha
     senha = ""; // Limpa a senha digitada
+    trancado = true;
     bloqueado();
-  }
-  else{
+  } else {
     trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
     somTrava();
     lcd.setCursor(0, 1);
@@ -204,30 +220,32 @@ void travar(){
 
 void reset(){
   delay(2000); // Exibe a mensagem por 2 segundos
-  digitalWrite(ledV, LOW);
-  digitalWrite(ledR, LOW);
+  digitalWrite(ledVERD, LOW);
+  digitalWrite(ledVERM, LOW);
   trava.write(180);
   lcd.setCursor(0, 1);
-  lcd.print("                "); // Limpa a linha
+  lcd.clear(); // Limpa a linha
   senha = ""; // Limpa a senha digitada
   lcd.setCursor(1, 0);
-  lcd.print("                "); // Limpa o campo de senha
 }
 
 void bloqueado(){
+  trancado = true;
   somTravaTotal();
   lcd.setCursor(3, 1);
   lcd.print("BLOQUEADO");
-  digitar();
-  if(senha == senhaEmergencia){
-    tentativas = 0;
-    reset();
-  }
-  else{
-      lcd.setCursor(1, 0);
-      lcd.print("                "); // Limpa o campo de senha
-      senha = ""; // Limpa a senha digitada
-  }
+  delay(1000);
+  // digitar();
+  // if(senha == senhaEmergencia){
+  //   tentativas = 0;
+  //   trancado = false;
+  //   reset();
+  // }
+  // else{
+  //   lcd.setCursor(1, 0);
+  //   lcd.clear(); // Limpa o campo de senha
+  //   senha = ""; // Limpa a senha digitada
+  // }
 }
 
 // void playNote(char note, int duration) {
@@ -269,13 +287,5 @@ void somTravaTotal(){
   tone(buzzerPin, 400, 1000);
 }
 
-void travaSeguranca(bool valor){
-  if(valor){
-    Serial.println("O cofre está trancando esperando confirmação de acesso");
-  } else {
-    Serial.println("O cofre destrancado");
-  }
-  // TODO: depois eu faço 
-}
 //O Painel de Controle deve apresentar um histórico de todas as tentativas de entradas, deve
 //permitir que o usuário bloqueie ou libere a trava, e acione o buzzer.
