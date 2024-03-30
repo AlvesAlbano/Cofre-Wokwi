@@ -18,7 +18,7 @@ const int buzzerPin = 2;
 // int beats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 16,};
 // int tempo = 75;
 
-const String senhaCorreta = "123456"; // Senha predefinida
+String senhaCorreta = "12"; // Senha predefinida
 const String senhaEmergencia = "ABCD*#";
 int tentativas = 0;
 bool trancado;
@@ -62,6 +62,7 @@ void conectarBroker() {
       digitalWrite(ledA,HIGH);
       Serial.println("Conectado");              
       client.subscribe("cofre/acesso");  	      //inscrição no tópico para receber mensagens
+      client.subscribe("cofre/senha");  	      //inscrição no tópico para receber mensagens
     }
   }
 }
@@ -104,7 +105,7 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     digitalWrite(ledVERD,LOW);
   } 
   
-  else if (mensagem == "OFF") {
+  if (mensagem == "OFF") {
     Serial.println("cofre bloqueado");
     digitalWrite(ledVERM,HIGH);
     trancado = true;
@@ -112,6 +113,24 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     lcd.clear();
     lcd.setCursor(3, 1);
     lcd.print("BLOQUEADO");
+  } else {
+    
+    String novaSenha = "";
+
+    // Encontrar a posição do número
+    int posicaoInicio = mensagem.indexOf(':') + 1;
+    int posicaoFim = mensagem.lastIndexOf('}');
+    // int posicaoFim = mensagem.length();
+
+
+    // Extrair o número como uma string
+    novaSenha = mensagem.substring(posicaoInicio, posicaoFim);
+
+    // Converter a string para um número inteiro (opcional)
+    senhaCorreta = novaSenha;
+
+    // Agora, 'numero' contém o número extraído
+    Serial.println("nova senha definida: " + senhaCorreta);
   }
 }
 //==========================================================================================================================================
@@ -196,6 +215,7 @@ void liberar(){
   somAcesso();
   lcd.setCursor(0, 1);
   lcd.print("Acesso permitido");
+  client.publish("cofre/historico","Acesso Concedido");
   reset();
 }
 
@@ -213,7 +233,7 @@ void travar(){
     somTrava();
     lcd.setCursor(0, 1);
     lcd.print("Senha incorreta");
-    client.publish("cofre/teste","mensagem teste");
+    client.publish("cofre/historico","Acesso Negado");
     reset();
   }
 }
