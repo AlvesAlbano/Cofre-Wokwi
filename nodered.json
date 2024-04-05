@@ -28,9 +28,9 @@
             "ea39c27bcc750e73"
         ],
         "x": 34,
-        "y": 79,
+        "y": 19,
         "w": 652,
-        "h": 202
+        "h": 182
     },
     {
         "id": "32f33f0f178ba50c",
@@ -46,15 +46,18 @@
             "color": "#a4a4a4"
         },
         "nodes": [
-            "c16c0fd615c53da6",
             "77d36d19e10ec4ce",
             "cc10806ecf5ae135",
-            "2b0ff8cb139c194c"
+            "2b0ff8cb139c194c",
+            "ff1cc4836ce9908c",
+            "a5ede6e01bf15688",
+            "5f42fc97ca512200",
+            "87a57b72faa8d41e"
         ],
         "x": 34,
-        "y": 319,
-        "w": 572,
-        "h": 162
+        "y": 239,
+        "w": 852,
+        "h": 222
     },
     {
         "id": "5fd49f6c19799bb3",
@@ -73,48 +76,14 @@
             "739c73734f131472",
             "0839dba3ba81b2a0",
             "2cbb0f11dbbfba6a",
-            "fd203aeb686e9c38"
+            "fd203aeb686e9c38",
+            "422aee76a0c8e04a",
+            "a084435aaea6a3ad"
         ],
         "x": 34,
-        "y": 519,
-        "w": 452,
-        "h": 142
-    },
-    {
-        "id": "c16c0fd615c53da6",
-        "type": "ui_switch",
-        "z": "8a3d2c730581dcb2",
-        "g": "32f33f0f178ba50c",
-        "name": "",
-        "label": "BLOQUEAR/DESBLOQUEAR",
-        "tooltip": "",
-        "group": "a45010db781a9042",
-        "order": 3,
-        "width": 0,
-        "height": 0,
-        "passthru": true,
-        "decouple": "false",
-        "topic": "topic",
-        "topicType": "msg",
-        "style": "",
-        "onvalue": "ON",
-        "onvalueType": "str",
-        "onicon": "",
-        "oncolor": "",
-        "offvalue": "OFF",
-        "offvalueType": "str",
-        "officon": "",
-        "offcolor": "",
-        "animate": false,
-        "className": "",
-        "x": 210,
-        "y": 360,
-        "wires": [
-            [
-                "77d36d19e10ec4ce",
-                "cc10806ecf5ae135"
-            ]
-        ]
+        "y": 499,
+        "w": 732,
+        "h": 182
     },
     {
         "id": "77d36d19e10ec4ce",
@@ -131,8 +100,8 @@
         "correl": "",
         "expiry": "",
         "broker": "2a4765f07d466fd0",
-        "x": 510,
-        "y": 360,
+        "x": 770,
+        "y": 280,
         "wires": []
     },
     {
@@ -148,8 +117,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 500,
-        "y": 440,
+        "x": 740,
+        "y": 340,
         "wires": []
     },
     {
@@ -167,7 +136,7 @@
         "rh": 0,
         "inputs": 0,
         "x": 130,
-        "y": 140,
+        "y": 60,
         "wires": [
             [
                 "096e9da3d2dd87db"
@@ -179,14 +148,16 @@
         "type": "function",
         "z": "8a3d2c730581dcb2",
         "g": "e0e627d8dc72893d",
-        "name": "function 1",
+        "name": "formatação historico",
         "func": "if (!flow.get('historico')) {\n    flow.set('historico', []);\n}\n\nif (msg.payload == \"Acesso Negado\") {\n    msg.payload = {\n        \"Acesso\": \"Acesso Negado\",\n        \"Horario de Acesso\": new Date().toLocaleString(),\n    };\n} else {\n    msg.payload = {\n        \"Acesso\": \"Acesso Concedido\",\n        \"Horario de Acesso\": new Date().toLocaleString(),\n    };\n}\n\nvar historico = flow.get('historico');\nhistorico.push(msg.payload);\nflow.set('historico', historico);\n\nreturn { payload: historico };",
         "outputs": 1,
+        "timeout": "",
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "x": 260,
-        "y": 240,
+        "libs": [],
+        "x": 380,
+        "y": 120,
         "wires": [
             [
                 "0963fbe39468df8a",
@@ -208,7 +179,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 580,
-        "y": 240,
+        "y": 140,
         "wires": []
     },
     {
@@ -226,8 +197,8 @@
         "correl": "",
         "expiry": "",
         "broker": "2a4765f07d466fd0",
-        "x": 390,
-        "y": 560,
+        "x": 450,
+        "y": 540,
         "wires": []
     },
     {
@@ -238,7 +209,7 @@
         "name": "",
         "label": "",
         "group": "fee1a7361766ef33",
-        "order": 2,
+        "order": 1,
         "width": 0,
         "height": 0,
         "options": [
@@ -261,11 +232,12 @@
         "splitLayout": "",
         "className": "",
         "x": 110,
-        "y": 560,
+        "y": 540,
         "wires": [
             [
                 "0839dba3ba81b2a0",
-                "2cbb0f11dbbfba6a"
+                "2cbb0f11dbbfba6a",
+                "a084435aaea6a3ad"
             ]
         ],
         "info": "oiiiiiiiiiiiiiii"
@@ -283,8 +255,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 380,
-        "y": 620,
+        "x": 420,
+        "y": 600,
         "wires": []
     },
     {
@@ -294,8 +266,8 @@
         "g": "5fd49f6c19799bb3",
         "name": "Grupo Nova senha",
         "info": "",
-        "x": 150,
-        "y": 620,
+        "x": 650,
+        "y": 540,
         "wires": []
     },
     {
@@ -306,7 +278,7 @@
         "name": "Grupo Bloqueio Desbloqueio",
         "info": "",
         "x": 180,
-        "y": 440,
+        "y": 420,
         "wires": []
     },
     {
@@ -316,8 +288,8 @@
         "g": "e0e627d8dc72893d",
         "name": "Grupo Historico",
         "info": "",
-        "x": 580,
-        "y": 120,
+        "x": 140,
+        "y": 160,
         "wires": []
     },
     {
@@ -334,19 +306,153 @@
         "outputs": 0,
         "cts": false,
         "x": 570,
-        "y": 180,
+        "y": 60,
         "wires": []
     },
     {
-        "id": "a45010db781a9042",
-        "type": "ui_group",
-        "name": "Bloquear/Desbloquear Cofre",
-        "tab": "feae15c3531b11d1",
-        "order": 3,
-        "disp": true,
-        "width": "6",
-        "collapse": false,
-        "className": ""
+        "id": "ff1cc4836ce9908c",
+        "type": "ui_button",
+        "z": "8a3d2c730581dcb2",
+        "g": "32f33f0f178ba50c",
+        "name": "",
+        "group": "a45010db781a9042",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "label": "BLOQUEAR",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "red",
+        "className": "",
+        "icon": "",
+        "payload": "OFF",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 130,
+        "y": 280,
+        "wires": [
+            [
+                "77d36d19e10ec4ce",
+                "cc10806ecf5ae135",
+                "87a57b72faa8d41e"
+            ]
+        ]
+    },
+    {
+        "id": "a5ede6e01bf15688",
+        "type": "ui_button",
+        "z": "8a3d2c730581dcb2",
+        "g": "32f33f0f178ba50c",
+        "name": "",
+        "group": "a45010db781a9042",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "label": "DESBLOQUEAR",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "green",
+        "className": "",
+        "icon": "",
+        "payload": "ON",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 150,
+        "y": 340,
+        "wires": [
+            [
+                "cc10806ecf5ae135",
+                "77d36d19e10ec4ce",
+                "87a57b72faa8d41e"
+            ]
+        ]
+    },
+    {
+        "id": "5f42fc97ca512200",
+        "type": "ui_toast",
+        "z": "8a3d2c730581dcb2",
+        "g": "32f33f0f178ba50c",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": true,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "className": "",
+        "topic": "",
+        "name": "",
+        "x": 770,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "87a57b72faa8d41e",
+        "type": "function",
+        "z": "8a3d2c730581dcb2",
+        "g": "32f33f0f178ba50c",
+        "name": "notificacão Bloqueio/Desbloqueio",
+        "func": "if (msg.payload == \"ON\"){\n    msg.payload = \"COFRE DESBLOQUEADO\"\n} else {\n    msg.payload = \"COFRE BLOQUEADO\"\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 380,
+        "wires": [
+            [
+                "5f42fc97ca512200",
+                "cc10806ecf5ae135"
+            ]
+        ]
+    },
+    {
+        "id": "422aee76a0c8e04a",
+        "type": "ui_toast",
+        "z": "8a3d2c730581dcb2",
+        "g": "5fd49f6c19799bb3",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": true,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "className": "",
+        "topic": "",
+        "name": "",
+        "x": 570,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "a084435aaea6a3ad",
+        "type": "function",
+        "z": "8a3d2c730581dcb2",
+        "g": "5fd49f6c19799bb3",
+        "name": "notificacão senha",
+        "func": "if (msg.payload){\n    msg.payload = \"Senha Alterada\"\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 640,
+        "wires": [
+            [
+                "422aee76a0c8e04a"
+            ]
+        ]
     },
     {
         "id": "2a4765f07d466fd0",
@@ -396,6 +502,17 @@
         "name": "Historico",
         "tab": "feae15c3531b11d1",
         "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "a45010db781a9042",
+        "type": "ui_group",
+        "name": "Bloquear/Desbloquear Cofre",
+        "tab": "feae15c3531b11d1",
+        "order": 3,
         "disp": true,
         "width": "6",
         "collapse": false,
