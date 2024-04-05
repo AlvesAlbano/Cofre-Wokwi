@@ -19,7 +19,8 @@ const int buzzerPin = 2;
 // int tempo = 75;
 
 String senhaCorreta = "12"; // Senha predefinida
-const String senhaEmergencia = "ABCD*#";
+String senhaOculta;
+// const String senhaEmergencia = "ABCD*#";
 int tentativas = 0;
 bool trancado;
 
@@ -103,9 +104,7 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     delay(2000);
     lcd.clear();
     digitalWrite(ledVERD,LOW);
-  } 
-  
-  if (mensagem == "OFF") {
+  } else if (mensagem == "OFF") {
     Serial.println("cofre bloqueado");
     digitalWrite(ledVERM,HIGH);
     trancado = true;
@@ -121,7 +120,6 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     int posicaoInicio = mensagem.indexOf(':') + 1;
     int posicaoFim = mensagem.lastIndexOf('}');
     // int posicaoFim = mensagem.length();
-
 
     // Extrair o número como uma string
     novaSenha = mensagem.substring(posicaoInicio, posicaoFim);
@@ -157,6 +155,7 @@ void setup() {
   trava.write(180); 
   lcd.init();
   lcd.backlight();
+  lcd.blink();
 }
 
 void loop() {
@@ -173,9 +172,10 @@ void digitar(){
     trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
     tone(buzzerPin, 800, 25);
     senha += key;
-
+    senhaOculta += '*';
+    
     lcd.setCursor(1, 0);
-    lcd.print(senha);
+    lcd.print(senhaOculta);
   }
 }
 
@@ -246,6 +246,7 @@ void reset(){
   lcd.setCursor(0, 1);
   lcd.clear(); // Limpa a linha
   senha = ""; // Limpa a senha digitada
+  senhaOculta = "";
   lcd.setCursor(1, 0);
 }
 
