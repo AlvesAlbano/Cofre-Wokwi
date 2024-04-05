@@ -5,6 +5,6 @@ Um cofre eletrônico desenvolvido no simulador WOKWI utilizando um microcontrola
 
 
 # NODE RED
-![image](https://github.com/AlvesAlbano/CofreWokwi/assets/148901882/3d424439-37fb-4426-8e05-0df582a386b8)
+![image](https://github.com/AlvesAlbano/CofreWokwi/assets/148901882/fada0ae5-d3d8-4665-b8ea-0b7958d81147)
 
 No Node-RED, foram utilizadas duas bibliotecas: 'node-red-dashboard' e 'node-red-node-ui-table', que representam, respectivamente, um painel de controle e uma função de tabela. No painel de controle, é possível bloquear e desbloquear remotamente o cofre, além de alterar sua senha. Na tabela, é possível visualizar o histórico de acesso.
