@@ -184,10 +184,11 @@ void apagar(){
     if (senha.length() > 0) {
       tone(buzzerPin, 200, 50);
       senha.remove(senha.length() - 1);
+      senhaOculta.remove(senhaOculta.length()-1);
       lcd.setCursor(1, 0);
       lcd.clear(); // Limpa o campo de senha
       lcd.setCursor(1, 0);
-      lcd.print(senha);
+      lcd.print(senhaOculta);
       delay(200); // Pequeno atraso para evitar múltiplas leituras do botão
     }
   }
