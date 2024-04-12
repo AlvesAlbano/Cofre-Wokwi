@@ -11,7 +11,12 @@
 const int travaPin = 12;
 const int btnApg = 17, btnIn = 16;
 const int ledVERD = 18, ledVERM = 19;
+const int ledA = 15;
 const int buzzerPin = 2;
+
+volatile unsigned int interruptCounter = 0;
+int totalInterruptCounter;
+hw_timer_t *timer = NULL;
 
 // char notes[] = "gabygabyxzCDxzCDabywabywzCDEzCDEbywFCDEqywFGDEqi        azbC";
 // int length = sizeof(notes);
@@ -22,6 +27,7 @@ String senhaCorreta = "12"; // Senha predefinida
 String senhaOculta;
 // const String senhaEmergencia = "ABCD*#";
 int tentativas = 0;
+
 bool trancado;
 
 String senha = "";
@@ -44,13 +50,17 @@ Servo trava;
 
 //BROKER MQTT============================================================================================================================
 
-const int ledA = 15;
+
 const char* mqtt_server = "broker.hivemq.com"; //servidor mqtt
 WiFiClient espClient;             //criação do objeto espClient do tipo WiFiClient
 PubSubClient client(espClient);   //abstrai
 unsigned long lastMsg = 0;        //unsigned long = inteiro de 32 bits sem sinal
 #define MSG_BUFFER_SIZE  (50)     //abstrai
 char msg[MSG_BUFFER_SIZE];        //abstrai
+
+void IRAM_ATTR onTimer() {
+  interruptCounter++;
+}
 
 void conectarBroker() {         
   client.setServer(mqtt_server, 1883);
@@ -114,21 +124,9 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     lcd.print("BLOQUEADO");
   } else {
     
-    String novaSenha = "";
+    senha = mensagem;
 
-    // Encontrar a posição do número
-    int posicaoInicio = mensagem.indexOf(':') + 1;
-    int posicaoFim = mensagem.lastIndexOf('}');
-    // int posicaoFim = mensagem.length();
-
-    // Extrair o número como uma string
-    novaSenha = mensagem.substring(posicaoInicio, posicaoFim);
-
-    // Converter a string para um número inteiro (opcional)
-    senhaCorreta = novaSenha;
-
-    // Agora, 'numero' contém o número extraído
-    Serial.println("nova senha definida: " + senhaCorreta);
+    Serial.println("Nova senha definida: " + senha);
   }
 }
 //==========================================================================================================================================
@@ -143,8 +141,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" Conectado!");
-  pinMode(ledA, OUTPUT);
   conectarBroker();
+  pinMode(ledA, OUTPUT);
 //==========================================================================================================================================
   pinMode(btnIn, INPUT_PULLUP);
   pinMode(btnApg, INPUT_PULLUP);
@@ -156,6 +154,11 @@ void setup() {
   lcd.init();
   lcd.backlight();
   lcd.blink();
+
+  timer = timerBegin(0, 40, true);//true -> count up
+  timerAttachInterrupt(timer, &onTimer, true);//true -> edge interrupt
+  timerAlarmWrite(timer, 1000000, true);//true -> automatic reload
+  timerAlarmEnable(timer);//play
 }
 
 void loop() {
@@ -196,13 +199,11 @@ void apagar(){
 
 void inserir(){
   if (digitalRead(btnIn) == LOW && !(trancado)) {
-    if (senha == senhaCorreta && tentativas<3) {
+    if (senha == senhaCorreta && tentativas < 3) {
       liberar();
-    } 
-    else if(tentativas == 3) {
+    } else if(tentativas == 3) {
       bloqueado();
-    }
-    else{
+    } else {
       travar();
     } 
   }
@@ -248,7 +249,6 @@ void reset(){
   lcd.clear(); // Limpa a linha
   senha = ""; // Limpa a senha digitada
   senhaOculta = "";
-  lcd.setCursor(1, 0);
 }
 
 void bloqueado(){
