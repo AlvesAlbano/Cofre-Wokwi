@@ -381,7 +381,7 @@
         "z": "2582f6e27304127c",
         "g": "4ce7be26c8572605",
         "name": "notificacão Bloqueio/Desbloqueio",
-        "func": "if (msg.payload == \"ON\"){\n    msg.payload = \"COFRE DESBLOQUEADO\"\n} else {\n    msg.payload = \"COFRE BLOQUEADO\"\n}\n\nmsg.payload = msg.payload.novaSenha.any\n\nreturn msg;",
+        "func": "if (msg.payload == \"ON\"){\n    msg.payload = \"COFRE DESBLOQUEADO\"\n} else {\n    msg.payload = \"COFRE BLOQUEADO\"\n}\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -447,8 +447,8 @@
         "group": "ed5f5d0cc20c9c48",
         "name": "",
         "order": 1,
-        "width": 0,
-        "height": 0,
+        "width": "0",
+        "height": "0",
         "columns": [],
         "outputs": 0,
         "cts": false,
@@ -461,19 +461,20 @@
         "type": "function",
         "z": "2582f6e27304127c",
         "g": "aa510fc7a207367f",
-        "name": "formatação",
-        "func": "if (msg.payload.novaSenha == null) {\n    msg.payload.novaSenha = \"1234\"\n} else {\n    msg.payload = msg.payload.novaSenha\n}\n\nreturn msg;",
+        "name": "verifica senha",
+        "func": "if (msg.payload.novaSenha == null) {\n    msg.payload.novaSenha = \"0\"\n} else {\n    msg.payload = msg.payload.novaSenha\n}\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 330,
+        "x": 340,
         "y": 540,
         "wires": [
             [
-                "84681ae2ae5c3e71"
+                "84681ae2ae5c3e71",
+                "2bd4f44bd4884b60"
             ]
         ]
     },
