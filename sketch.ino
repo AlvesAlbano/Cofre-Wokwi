@@ -124,9 +124,14 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     lcd.print("BLOQUEADO");
   } else {
     
-    senha = mensagem;
-
-    Serial.println("Nova senha definida: " + senha);
+    senhaCorreta = mensagem;
+    
+    lcd.home();
+    lcd.print("Senha Alterada");
+    
+    Serial.println("Nova senha definida: " + senhaCorreta);
+    delay(2000);
+    lcd.clear();
   }
 }
 //==========================================================================================================================================
@@ -234,7 +239,7 @@ void travar(){
     trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
     somTrava();
     lcd.setCursor(0, 1);
-    lcd.print("Senha incorreta");
+    lcd.print("Acesso Negado");
     client.publish("cofre/historico","Acesso Negado");
     reset();
   }
