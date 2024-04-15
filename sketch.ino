@@ -10,7 +10,7 @@
 
 const int travaPin = 12;
 const int btnApg = 17, btnIn = 16;
-const int ledVERD = 18, ledVERM = 19;
+const int ledVERD = 18, ledVERM = 19, ledA = 15;
 const int buzzerPin = 2;
 
 String senhaCorreta = "12"; // Senha predefinida
@@ -36,15 +36,20 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_LINES);
 Servo trava;
 
-//BROKER MQTT============================================================================================================================
-
-const int ledA = 15;
 const char* mqtt_server = "broker.hivemq.com"; //servidor mqtt
-WiFiClient espClient;             //criação do objeto espClient do tipo WiFiClient
-PubSubClient client(espClient);   //abstrai
-unsigned long lastMsg = 0;        //unsigned long = inteiro de 32 bits sem sinal
-#define MSG_BUFFER_SIZE  (50)     //abstrai
-char msg[MSG_BUFFER_SIZE];        //abstrai
+WiFiClient espClient;
+PubSubClient client(espClient);
+unsigned long lastMsg = 0;
+#define MSG_BUFFER_SIZE  (50)
+char msg[MSG_BUFFER_SIZE];
+
+volatile unsigned int interruptCounter = 0;
+int totalInterruptCounter;
+hw_timer_t *timer = NULL;
+
+void IRAM_ATTR onTimer() {
+  interruptCounter++;
+}
 
 void conectarBroker() {         
   client.setServer(mqtt_server, 1883);
@@ -54,10 +59,10 @@ void conectarBroker() {
     String clientId = "";
     clientId += String(random(0xffff), HEX);
     if (client.connect(clientId.c_str())) {
-      digitalWrite(ledA,HIGH);
+      // digitalWrite(ledA,HIGH);
       Serial.println("Conectado");              
-      client.subscribe("cofre/acesso");  	      //inscrição no tópico para receber mensagens
-      client.subscribe("cofre/senha");  	      //inscrição no tópico para receber mensagens
+      client.subscribe("cofre/acesso");
+      client.subscribe("cofre/senha");
     }
   }
 }
@@ -70,14 +75,6 @@ void reconectarBroker() {
 }
 
 void callback(char* topic, byte* payload, unsigned int lenght) {
-  if ((char)payload[0] == 'a') {
-    digitalWrite(ledA, LOW);
-   
-  }
-  if ((char)payload[0] == 'A') {
-    digitalWrite(ledA, HIGH);
-    
-  }
 
   String mensagem = "";
   
@@ -98,31 +95,15 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     delay(1000);
     reset();
   } else if (mensagem == "OFF") {
-      bloqueado();
+    bloqueado();
   } else {
-    
-    String novaSenha = "";
-
-    // Encontrar a posição do número
-    int posicaoInicio = mensagem.indexOf(':') + 1;
-    int posicaoFim = mensagem.lastIndexOf('}');
-    // int posicaoFim = mensagem.length();
-
-    // Extrair o número como uma string
-    novaSenha = mensagem.substring(posicaoInicio, posicaoFim);
-
-    // Converter a string para um número inteiro (opcional)
-    senhaCorreta = novaSenha;
-
-    // Agora, 'numero' contém o número extraído
-    Serial.println("nova senha definida: " + senhaCorreta);
+    senhaCorreta = mensagem;
+    Serial.println("Nova senha definida: " + senhaCorreta);
   }
 }
-//==========================================================================================================================================
 
 void setup() {
   Serial.begin(115200);
-//BROKER MQTT============================================================================================================================
   Serial.print("Conectando-se ao Wi-Fi");
   WiFi.begin("Wokwi-GUEST", "", 6);
   while (WiFi.status() != WL_CONNECTED) {
@@ -132,7 +113,6 @@ void setup() {
   Serial.println(" Conectado!");
   pinMode(ledA, OUTPUT);
   conectarBroker();
-//==========================================================================================================================================
   pinMode(btnIn, INPUT_PULLUP);
   pinMode(btnApg, INPUT_PULLUP);
   pinMode(ledVERM, OUTPUT);
@@ -146,6 +126,11 @@ void setup() {
   lcd.print("Digite a senha:");
   lcd.setCursor(1, 1);
   lcd.blink();
+
+  timer = timerBegin(0, 40, true);//true -> count up
+  timerAttachInterrupt(timer, &onTimer, true);//true -> edge interrupt
+  timerAlarmWrite(timer, 1000000, true);//true -> automatic reload
+  timerAlarmEnable(timer);//play
 }
 
 void loop() {
@@ -153,13 +138,14 @@ void loop() {
   digitar();
   apagar();
   inserir();
+  ledInterrupcao();
 }
 
 void digitar(){
   char key = keypad.getKey();
 
   if (key != NO_KEY && !(trancado)) {
-    trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
+    trava.detach();
     tone(buzzerPin, 800, 25);
     senha += key;
     senhaOculta += '*';
@@ -176,19 +162,19 @@ void apagar(){
       senha.remove(senha.length() - 1);
       senhaOculta.remove(senhaOculta.length()-1);
       lcd.setCursor(1, 1);
-      lcd.clear(); // Limpa o campo de senha
+      lcd.clear();
       lcd.print("Digite a senha:");
       lcd.setCursor(1, 1);
       lcd.setCursor(1, 1);
       lcd.print(senhaOculta);
-      delay(200); // Pequeno atraso para evitar múltiplas leituras do botão
+      delay(200);
     }
   }
 }
 
 void inserir(){
   if (digitalRead(btnIn) == LOW && !(trancado)) {
-    if (senha == senhaCorreta && tentativas<3) {
+    if (senha == senhaCorreta && tentativas < 3) {
       liberar();
     } 
     else if(tentativas == 3) {
@@ -207,7 +193,7 @@ void liberar(){
   trava.write(0);
   somAcesso();
   lcd.setCursor(0, 1);
-  lcd.print("Acesso permitido");
+  lcd.print("Acesso Concedido");
   client.publish("cofre/historico","Acesso Concedido");
   reset();
 }
@@ -217,29 +203,29 @@ void travar(){
   tentativas++;
   if(tentativas == 3){
     lcd.setCursor(1, 0);
-    lcd.clear(); // Limpa o campo de senha
-    senha = ""; // Limpa a senha digitada
+    lcd.clear();
+    senha = "";
     trancado = true;
     bloqueado();
   } else {
-    trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
+    trava.detach();
     somTrava();
     lcd.setCursor(0, 1);
-    lcd.print("Senha incorreta");
+    lcd.print("Acesso Negado");
     client.publish("cofre/historico","Acesso Negado");
     reset();
   }
 }
 
 void reset(){
-  delay(2000); // Exibe a mensagem por 2 segundos
+  delay(2000);
   digitalWrite(ledVERD, LOW);
   digitalWrite(ledVERM, LOW);
-  trava.attach(travaPin); // Liga o sinal enviado para o servo, "liberando-o"
+  trava.attach(travaPin);
   trava.write(180);
   lcd.setCursor(0, 1);
-  lcd.clear(); // Limpa a linha
-  senha = ""; // Limpa a senha digitada
+  lcd.clear();
+  senha = "";
   senhaOculta = "";
   lcd.setCursor(0, 0);
   lcd.print("Digite a senha:");
@@ -249,15 +235,14 @@ void reset(){
 void bloqueado(){
   digitalWrite(ledVERM, HIGH);
   lcd.setCursor(0, 0);
-  lcd.clear(); // Limpa a linha
-  trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
+  lcd.clear();
+  trava.detach();
   trancado = true;
   somTravaTotal();
   lcd.setCursor(3, 1);
   lcd.print("BLOQUEADO");
   delay(1000);
 }
-
 
 void somAcesso(){
   tone(buzzerPin, 1000, 1000);
@@ -269,4 +254,17 @@ void somTrava(){
 
 void somTravaTotal(){
   tone(buzzerPin, 400, 1000);
+}
+
+void ledInterrupcao(){
+  
+  int estado = interruptCounter % 2;
+  
+  if(WiFi.status() == WL_CONNECTED){
+    if (estado == 1) {
+      digitalWrite(ledA,HIGH);
+    } else {
+      digitalWrite(ledA,LOW);
+    }
+  }
 }
