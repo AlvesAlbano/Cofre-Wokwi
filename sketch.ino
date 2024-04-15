@@ -11,23 +11,11 @@
 const int travaPin = 12;
 const int btnApg = 17, btnIn = 16;
 const int ledVERD = 18, ledVERM = 19;
-const int ledA = 15;
 const int buzzerPin = 2;
-
-volatile unsigned int interruptCounter = 0;
-int totalInterruptCounter;
-hw_timer_t *timer = NULL;
-
-// char notes[] = "gabygabyxzCDxzCDabywabywzCDEzCDEbywFCDEqywFGDEqi        azbC";
-// int length = sizeof(notes);
-// int beats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 16,};
-// int tempo = 75;
 
 String senhaCorreta = "12"; // Senha predefinida
 String senhaOculta;
-// const String senhaEmergencia = "ABCD*#";
 int tentativas = 0;
-
 bool trancado;
 
 String senha = "";
@@ -50,17 +38,13 @@ Servo trava;
 
 //BROKER MQTT============================================================================================================================
 
-
+const int ledA = 15;
 const char* mqtt_server = "broker.hivemq.com"; //servidor mqtt
 WiFiClient espClient;             //criação do objeto espClient do tipo WiFiClient
 PubSubClient client(espClient);   //abstrai
 unsigned long lastMsg = 0;        //unsigned long = inteiro de 32 bits sem sinal
 #define MSG_BUFFER_SIZE  (50)     //abstrai
 char msg[MSG_BUFFER_SIZE];        //abstrai
-
-void IRAM_ATTR onTimer() {
-  interruptCounter++;
-}
 
 void conectarBroker() {         
   client.setServer(mqtt_server, 1883);
@@ -86,14 +70,14 @@ void reconectarBroker() {
 }
 
 void callback(char* topic, byte* payload, unsigned int lenght) {
-  // if ((char)payload[0] == 'a') {
-  //   digitalWrite(ledA, LOW);
+  if ((char)payload[0] == 'a') {
+    digitalWrite(ledA, LOW);
    
-  // }
-  // if ((char)payload[0] == 'A') {
-  //   digitalWrite(ledA, HIGH);
+  }
+  if ((char)payload[0] == 'A') {
+    digitalWrite(ledA, HIGH);
     
-  // }
+  }
 
   String mensagem = "";
   
@@ -107,31 +91,31 @@ void callback(char* topic, byte* payload, unsigned int lenght) {
     digitalWrite(ledVERM,LOW);
     tentativas = 0;
     trancado = false;
-    senha = "";
     lcd.clear();
-    lcd.setCursor(1, 1);
+    lcd.setCursor(2, 1);
     lcd.print("DESBLOQUEADO");
-    delay(2000);
-    lcd.clear();
-    digitalWrite(ledVERD,LOW);
+    somAcesso();
+    delay(1000);
+    reset();
   } else if (mensagem == "OFF") {
-    Serial.println("cofre bloqueado");
-    digitalWrite(ledVERM,HIGH);
-    trancado = true;
-    senha = "";
-    lcd.clear();
-    lcd.setCursor(3, 1);
-    lcd.print("BLOQUEADO");
+      bloqueado();
   } else {
     
-    senhaCorreta = mensagem;
-    
-    lcd.home();
-    lcd.print("Senha Alterada");
-    
-    Serial.println("Nova senha definida: " + senhaCorreta);
-    delay(2000);
-    lcd.clear();
+    String novaSenha = "";
+
+    // Encontrar a posição do número
+    int posicaoInicio = mensagem.indexOf(':') + 1;
+    int posicaoFim = mensagem.lastIndexOf('}');
+    // int posicaoFim = mensagem.length();
+
+    // Extrair o número como uma string
+    novaSenha = mensagem.substring(posicaoInicio, posicaoFim);
+
+    // Converter a string para um número inteiro (opcional)
+    senhaCorreta = novaSenha;
+
+    // Agora, 'numero' contém o número extraído
+    Serial.println("nova senha definida: " + senhaCorreta);
   }
 }
 //==========================================================================================================================================
@@ -146,8 +130,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" Conectado!");
-  conectarBroker();
   pinMode(ledA, OUTPUT);
+  conectarBroker();
 //==========================================================================================================================================
   pinMode(btnIn, INPUT_PULLUP);
   pinMode(btnApg, INPUT_PULLUP);
@@ -158,12 +142,10 @@ void setup() {
   trava.write(180); 
   lcd.init();
   lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Digite a senha:");
+  lcd.setCursor(1, 1);
   lcd.blink();
-
-  timer = timerBegin(0, 40, true);//true -> count up
-  timerAttachInterrupt(timer, &onTimer, true);//true -> edge interrupt
-  timerAlarmWrite(timer, 1000000, true);//true -> automatic reload
-  timerAlarmEnable(timer);//play
 }
 
 void loop() {
@@ -182,7 +164,7 @@ void digitar(){
     senha += key;
     senhaOculta += '*';
     
-    lcd.setCursor(1, 0);
+    lcd.setCursor(1, 1);
     lcd.print(senhaOculta);
   }
 }
@@ -193,9 +175,11 @@ void apagar(){
       tone(buzzerPin, 200, 50);
       senha.remove(senha.length() - 1);
       senhaOculta.remove(senhaOculta.length()-1);
-      lcd.setCursor(1, 0);
+      lcd.setCursor(1, 1);
       lcd.clear(); // Limpa o campo de senha
-      lcd.setCursor(1, 0);
+      lcd.print("Digite a senha:");
+      lcd.setCursor(1, 1);
+      lcd.setCursor(1, 1);
       lcd.print(senhaOculta);
       delay(200); // Pequeno atraso para evitar múltiplas leituras do botão
     }
@@ -204,21 +188,23 @@ void apagar(){
 
 void inserir(){
   if (digitalRead(btnIn) == LOW && !(trancado)) {
-    if (senha == senhaCorreta && tentativas < 3) {
+    if (senha == senhaCorreta && tentativas<3) {
       liberar();
-    } else if(tentativas == 3) {
+    } 
+    else if(tentativas == 3) {
       bloqueado();
-    } else {
+    }
+    else{
       travar();
     } 
   }
 }
 
 void liberar(){
-  trava.attach(travaPin); // Liga o sinal enviado para o servo, "liberando-o"
+  trava.attach(travaPin);
   tentativas = 0;
   digitalWrite(ledVERD, HIGH);
-  trava.write(90);
+  trava.write(0);
   somAcesso();
   lcd.setCursor(0, 1);
   lcd.print("Acesso permitido");
@@ -239,7 +225,7 @@ void travar(){
     trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
     somTrava();
     lcd.setCursor(0, 1);
-    lcd.print("Acesso Negado");
+    lcd.print("Senha incorreta");
     client.publish("cofre/historico","Acesso Negado");
     reset();
   }
@@ -249,60 +235,31 @@ void reset(){
   delay(2000); // Exibe a mensagem por 2 segundos
   digitalWrite(ledVERD, LOW);
   digitalWrite(ledVERM, LOW);
+  trava.attach(travaPin); // Liga o sinal enviado para o servo, "liberando-o"
   trava.write(180);
   lcd.setCursor(0, 1);
   lcd.clear(); // Limpa a linha
   senha = ""; // Limpa a senha digitada
   senhaOculta = "";
+  lcd.setCursor(0, 0);
+  lcd.print("Digite a senha:");
+  lcd.setCursor(1, 1);
 }
 
 void bloqueado(){
+  digitalWrite(ledVERM, HIGH);
+  lcd.setCursor(0, 0);
+  lcd.clear(); // Limpa a linha
+  trava.detach(); // Desliga o sinal enviado para o servo, "travando-o"
   trancado = true;
   somTravaTotal();
   lcd.setCursor(3, 1);
   lcd.print("BLOQUEADO");
   delay(1000);
-  // digitar();
-  // if(senha == senhaEmergencia){
-  //   tentativas = 0;
-  //   trancado = false;
-  //   reset();
-  // }
-  // else{
-  //   lcd.setCursor(1, 0);
-  //   lcd.clear(); // Limpa o campo de senha
-  //   senha = ""; // Limpa a senha digitada
-  // }
 }
 
-// void playNote(char note, int duration) {
-//   char names[] = { 'c', 'd', 'e', 'f', 'g', 'x', 'a', 'z', 'b', 'C', 'y', 'D', 'w', 'E', 'F', 'q', 'G', 'i' };
-//   int tones[] = { 1898, 1690, 1500, 1420, 1265, 1194, 1126, 1063, 1001, 947, 893, 843, 795, 749, 710, 668, 630, 594 };
-//   for (int i = 0; i < 18; i++) {
-//     if (names[i] == note) {
-//       playTone(tones[i], duration);
-//     }
-//   }
-// }
-
-// void playTone(int tone, int duration) {
-//   for (long i = 0; i < duration * 1000L; i += tone * 2) {
-//     digitalWrite(buzzerPin, HIGH);
-//     delayMicroseconds(tone);
-//     digitalWrite(buzzerPin, LOW);
-//     delayMicroseconds(tone);
-//   }
-// }
 
 void somAcesso(){
-  // for (int i = 0; i < length; i++) {
-  //   if (notes[i] == ' ') {
-  //     delay(beats[i] * tempo);
-  //   } else {
-  //     playNote(notes[i], beats[i] * tempo);
-  //   }
-  //   delay(tempo / 2);
-  // }
   tone(buzzerPin, 1000, 1000);
 }
 
@@ -313,6 +270,3 @@ void somTrava(){
 void somTravaTotal(){
   tone(buzzerPin, 400, 1000);
 }
-
-//O Painel de Controle deve apresentar um histórico de todas as tentativas de entradas, deve
-//permitir que o usuário bloqueie ou libere a trava, e acione o buzzer.
